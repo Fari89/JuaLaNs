@@ -7,7 +7,7 @@
             { id: 2, name: 'Produk B', qty: 1, price: 75000 }
         ]
     }"
-    class="bg-white/20 backdrop-blur-md border-b border-white/10 text-white transition duration-300 ease-in-out fixed w-full z-50 top-0 left-0 shadow-md">
+    class="bg-white  border-b border-white/10 text-white transition duration-300 ease-in-out fixed w-full z-50 top-0 left-0 shadow-md">
 
     <!-- Primary Navigation Menu -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -20,30 +20,42 @@
                     </a>
                 </div>
             </div>
-
+            <div>
+            </div>
+            
             <!-- Settings & Cart -->
             <div class="hidden sm:flex sm:items-center sm:ms-6 space-x-4">
-                <!-- Icon Keranjang -->
-                <div class="flex items-center">
-                    <a href="{{ route('cart.index') }}" class="relative p-2 hover:scale-110 focus:outline-none">
-                        <svg class="h-6 w-6 text-blue-700 hover:text-blue-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
-                            <circle cx="9" cy="21" r="1"></circle>
-                            <circle cx="20" cy="21" r="1"></circle>
-                            <path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 001.95-1.54L23 6H6"></path>
-                        </svg>
+                <body class="scroll-smooth">
+               <a href="/product">
+  <h1 class="text-blue-800 hover:text-blue-600">Lihat Produk</h1>
+</a>
 
-                        @php
-                            $cartItems = session()->get('cart', []);
-                            $cartCount = array_sum(array_column($cartItems, 'quantity'));
-                        @endphp
+                <!-- Cart Icon -->
+<div class="relative">
+    <a href="{{ route('cart.index') }}" class="text-blue-800 hover:text-blue-600">
+        <!-- Kart mirip Shopee: stroke minimal + kontur bundar -->
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+     viewBox="0 0 23 23" fill="none" stroke="currentColor" stroke-width="2"
+     stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6">
+  <circle cx="6" cy="19" r="2" />
+  <circle cx="17" cy="19" r="2" />
+  <path d="M17 17h-11v-14h-2" />
+  <path d="M6 5l6.005 .429m7.138 6.573l-.143 .998h-13" />
+  <path d="M15 6h6m-3-3v6" />
+</svg>
 
-                        @if($cartCount > 0)
-                            <span class="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white bg-red-600 rounded-full">
-                                {{ $cartCount }}
-                            </span>
-                        @endif
-                    </a>
-                </div>
+        <!-- Badge item count -->
+        @php
+            $cart = session('cart', []);
+            $totalQty = array_sum(array_column($cart, 'quantity'));
+        @endphp
+        @if($totalQty > 0)
+            <span
+                class="absolute -top-2 -right-2 bg-red-600 text-white text-xs rounded-full px-1.5 py-0.5">{{ $totalQty }}</span>
+        @endif
+    </a>
+</div>
+
 
                 <!-- Dropdown User -->
                 <x-dropdown align="right" width="48">
@@ -64,6 +76,7 @@
                         <x-dropdown-link :href="route('admin.index')">Masuk Admin</x-dropdown-link>
                         <x-dropdown-link :href="route('product.index')">Product</x-dropdown-link>
 
+
                         <!-- Authentication -->
                         <form method="POST" action="{{ route('logout') }}">
                             @csrf
@@ -77,7 +90,7 @@
 
             <!-- Hamburger (Mobile) -->
             <div class="-me-2 flex items-center sm:hidden">
-                <button @click="open = ! open" class="inline-flex items-center justify-center p-2 rounded-md text-white hover:text-gray-200 focus:outline-none transition duration-150 ease-in-out">
+                <button @click="open = ! open" class="inline-flex items-center justify-center p-2 rounded-md text-blue-700 hover:text-blue-600 focus:outline-none transition duration-150 ease-in-out">
                     <svg class="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
                         <path :class="{'hidden': open, 'inline-flex': ! open }" class="inline-flex" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
                         <path :class="{'hidden': ! open, 'inline-flex': open }" class="hidden" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
