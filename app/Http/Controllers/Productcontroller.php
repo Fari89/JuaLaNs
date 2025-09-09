@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\Storage; // Tambahkan ini untuk Storage
 
 class ProductController extends Controller
 {
@@ -19,14 +20,29 @@ class ProductController extends Controller
     public function index(Request $request)
     {
         $search = $request->input('search');
+        $category = $request->input('category'); // Ambil input kategori
 
-        // Mengambil produk dan menerapkan pencarian jika ada, dengan paginasi
-        $products = Product::when($search, function ($query, $search) {
-            return $query->where('nama', 'like', '%' . $search . '%')
-                         ->orWhere('deskripsi', 'like', '%' . $search . '%');
-        })->paginate(9); // Sesuaikan angka 9 sesuai kebutuhan Anda untuk jumlah produk per halaman
+        // Inisialisasi query builder
+        $query = Product::query();
 
-        // Mengambil semua produk (bisa digunakan di tempat lain, misal di halaman keranjang)
+        // Terapkan filter pencarian jika ada
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('nama', 'like', '%' . $search . '%')
+                  ->orWhere('deskripsi', 'like', '%' . $search . '%');
+            });
+        }
+
+        // Terapkan filter kategori jika ada dan bukan 'null' (untuk "Semua Produk")
+        if ($category && $category !== 'null') {
+            $query->where('kategori', $category); // Pastikan kolom 'kategori' ada di tabel 'products'
+        }
+
+        // Urutkan berdasarkan yang terbaru dan terapkan paginasi setelah semua filter
+        $products = $query->latest()->paginate(12); // Sesuaikan angka 9 sesuai kebutuhan Anda
+
+        // Mengambil semua produk (jika masih diperlukan di bagian lain aplikasi,
+        // jika tidak, Anda bisa menghapusnya untuk efisiensi)
         $allProducts = Product::all();
 
         // PENTING: Pastikan Anda melewatkan variabel 'products' (jamak) ke view 'product.index'
@@ -56,6 +72,7 @@ class ProductController extends Controller
                 'nama' => 'required|string|max:255',
                 'harga' => 'required|numeric',
                 'deskripsi' => 'required|string',
+                'kategori' => 'required|string|max:255', // Tambahkan validasi untuk kategori
                 'foto' => 'required|image|mimes:jpeg,png,jpg|max:10240', // Max 10MB
             ]);
 
@@ -66,7 +83,7 @@ class ProductController extends Controller
                 Log::error('Gagal mengunggah foto: File tidak ditemukan atau tidak valid.');
                 return back()->withErrors(['foto' => 'Gagal mengunggah foto. Pastikan Anda memilih file gambar yang valid.'])->withInput();
             }
-            
+
             $product = Product::create($data);
 
             Log::info('Produk berhasil disimpan: ', $product->toArray());
@@ -118,13 +135,14 @@ class ProductController extends Controller
                 'nama' => 'required|string|max:255',
                 'harga' => 'required|numeric',
                 'deskripsi' => 'required|string',
+                'kategori' => 'required|string|max:255', // Tambahkan validasi untuk kategori
                 'foto' => 'nullable|image|mimes:jpeg,png,jpg|max:10240', // Foto opsional saat update
             ]);
 
             if ($request->hasFile('foto') && $request->file('foto')->isValid()) {
                 // Hapus foto lama jika ada
                 if ($product->foto) {
-                    \Illuminate\Support\Facades\Storage::disk('public')->delete($product->foto);
+                    Storage::disk('public')->delete($product->foto);
                 }
                 $data['foto'] = $request->file('foto')->store('produk', 'public');
             } else {
@@ -153,7 +171,7 @@ class ProductController extends Controller
     {
         try {
             if ($product->foto) {
-                \Illuminate\Support\Facades\Storage::disk('public')->delete($product->foto);
+                Storage::disk('public')->delete($product->foto);
             }
             $product->delete();
             return redirect()->route('admin.index')->with('success', 'Produk berhasil dihapus.');
@@ -189,10 +207,10 @@ class ProductController extends Controller
         Session::put('cart_no_hp', $noHp);
 
         $cartItem = \App\Models\Cart::where('nama_pembeli', $namaPembeli)
-                                   ->where('alamat', $alamat)
-                                   ->where('no_hp', $noHp)
-                                   ->where('product_id', $productId)
-                                   ->first();
+                                     ->where('alamat', $alamat)
+                                     ->where('no_hp', $noHp)
+                                     ->where('product_id', $productId)
+                                     ->first();
 
         if ($cartItem) {
             $cartItem->jumlah += $jumlah;
@@ -207,6 +225,7 @@ class ProductController extends Controller
                 'no_hp' => $noHp,
                 'jumlah' => $jumlah,
                 'price' => $product->harga,
+                'nama_produk' => $product->nama, // Ini akan menggunakan kolom 'nama' dari tabel products
             ]);
             $message = 'Produk berhasil ditambahkan ke keranjang!';
         }

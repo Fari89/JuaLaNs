@@ -22,21 +22,12 @@
                 <p class="text-lg md:text-2xl mb-6 max-w-2xl mx-auto">
                     Temukan produk terbaik pilihan dengan harga bersahabat!
                 </p>
-                <a href="http://localhost:8000/product"
+                <a href="http://localhost:8000/dashboard"
                    class="inline-block bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-full shadow-lg transition duration-300 hover:scale-110">
-                    Lihat Produk
+                    Masuk ke Dashboard
                 </a>
             </div>
         </div>
-
-        <!-- Fixed Footer -->
-        <footer class="relative z-10 bg-black bg-opacity-30 text-gray-300 text-sm text-center py-4">
-            <div class="max-w-7xl mx-auto px-4">
-                <p>&copy; {{ date('Y') }} <strong class="text-white">JuaLaNs</strong>. All rights reserved.</p>
-                <p>Developer by: <strong class="text-blue-400">Muhammad Farihin Mushawwir</strong></p>
-                <p>All Image From &copy;IKEA</p>
-            </div>
-        </footer>
     </section>
 
     <!-- Alpine.js Carousel Script -->

@@ -117,7 +117,7 @@
                                 role="menu" aria-orientation="vertical" aria-labelledby="user-menu-button" tabindex="-1">
                                 <a href="{{ route('profile.edit') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem" tabindex="-1" id="user-menu-item-0">Profile</a>
                                 <a href="{{ route('dashboard') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem" tabindex="-1" id="user-menu-item-1">Dashboard</a>
-                                <a href="{{ route('admin.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem" tabindex="-1" id="user-menu-item-2">Masuk Admin</a>
+                                {{-- <a href="{{ route('admin.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem" tabindex="-1" id="user-menu-item-2">Masuk Admin</a> --}}
                                 <a href="{{ route('product.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem" tabindex="-1" id="user-menu-item-3">Product</a>
                                 <form method="POST" action="{{ route('logout') }}">
                                     @csrf
@@ -146,7 +146,7 @@
         <div :class="{'block': open, 'hidden': ! open}" class="hidden sm:hidden bg-blue-800 bg-opacity-90">
             <div class="pt-2 pb-3 space-y-1">
                 <a href="{{ route('dashboard') }}" class="block px-4 py-2 text-white hover:bg-blue-700">Dashboard</a>
-                <a href="{{ route('admin.index') }}" class="block px-4 py-2 text-white hover:bg-blue-700">Masuk Admin</a>
+                {{-- <a href="{{ route('admin.index') }}" class="block px-4 py-2 text-white hover:bg-blue-700">Masuk Admin</a> --}}
                 <a href="{{ route('product.index') }}" class="block px-4 py-2 text-white hover:bg-blue-700">Product</a>
                 @guest
                     <a href="{{ route('login') }}" class="block px-4 py-2 text-white hover:bg-blue-700">Login</a>
@@ -243,10 +243,214 @@
                 </div>
 
                 <!-- Buttons Section -->
-                <div class="flex flex-col sm:flex-row justify-between items-center mt-10 space-y-4 sm:space-y-0 sm:space-x-4">
-                    <a href="#" class="w-full sm:w-auto bg-blue-800 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-800 focus:ring-opacity-50">Lanjutkan ke Checkout</a>
-                    <a href="{{ route('product.index') }}" class="bg-gray-700 hover:bg-gray-800 text-white font-bold py-3 px-8 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-gray-700 focus:ring-opacity-50">Lanjutkan Belanja</a>
+                <!-- Wrapper untuk Tombol dan Modal Checkout -->
+<div x-data="{ openCheckoutModal: false, selectedPaymentMethod: '', formSubmitted: false, validationMessage: '' }"> {{-- Tambahkan formSubmitted dan validationMessage --}}
+
+    <!-- Buttons Section (tetap sama seperti sebelumnya) -->
+    <div class="flex flex-col sm:flex-row justify-between items-center mt-10 space-y-4 sm:space-y-0 sm:space-x-4">
+        <a href="javascript:void(0)"
+           x-on:click="openCheckoutModal = true"
+           class="w-full sm:w-auto bg-blue-800 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-800 focus:ring-opacity-50">
+            Lanjutkan ke Checkout
+        </a>
+
+        <a href="{{ route('product.index') }}" class="bg-gray-700 hover:bg-gray-800 text-white font-bold py-3 px-8 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-gray-700 focus:ring-opacity-50">Lanjutkan Belanja</a>
+    </div>
+
+    {{-- Modal Checkout (Versi Simple & Modern) --}}
+    <div x-show="openCheckoutModal"
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0 scale-90"
+         x-transition:enter-end="opacity-100 scale-100"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100 transform translate-y-0"
+         x-transition:leave-end="opacity-0 transform -translate-y-2"
+         class="fixed inset-0 z-[999] flex items-center justify-center p-4"
+         style="display: none;">
+
+        {{-- Overlay latar belakang --}}
+        <div x-on:click="openCheckoutModal = false" class="fixed inset-0 bg-black bg-opacity-50"></div>
+
+        {{-- Konten Modal --}}
+        <div class="bg-white rounded-lg shadow-xl p-5 w-full max-w-md z-10 mx-auto transform transition-all duration-300 ease-in-out border border-gray-100"> {{-- max-w-md dan p-5 --}}
+            <h3 class="text-xl font-bold text-gray-800 mb-5 text-center">Konfirmasi & Pembayaran</h3> {{-- text-xl dan mb-5 --}}
+
+            <form action="{{ route('checkout.process') }}" method="POST"
+                  x-on:submit.prevent="
+                      formSubmitted = true;
+                      validationMessage = '';
+                      let form = $event.target;
+                      let isValid = true;
+
+                      // Check general required fields
+                      form.querySelectorAll('[required]:not([type=radio])').forEach(input => {
+                          if (!input.value.trim()) {
+                              isValid = false;
+                          }
+                      });
+
+                      // Check radio buttons for payment method
+                      let paymentMethodSelected = form.querySelector('input[name=payment_method]:checked');
+                      if (!paymentMethodSelected) {
+                          isValid = false;
+                      } else if (paymentMethodSelected.value === 'transfer') {
+                          // Check required fields for transfer method
+                          if (!form.querySelector('#nama_pengirim_rekening').value.trim() || !form.querySelector('#nomor_rekening_pengirim').value.trim()) {
+                              isValid = false;
+                          }
+                      }
+
+                      // Check terms agreement
+                      if (!form.querySelector('#agree_terms').checked) {
+                          isValid = false;
+                      }
+
+                      if (isValid) {
+                          form.submit(); // Submit the form if valid
+                      } else {
+                          validationMessage = 'Mohon lengkapi semua form yang wajib diisi.';
+                          setTimeout(() => validationMessage = '', 2000); // Hilangkan notif setelah 2 detik
+                      }
+                  ">
+                @csrf
+
+                <!-- Notifikasi Validasi -->
+                <div x-show="formSubmitted && validationMessage"
+                     x-transition:enter="transition ease-out duration-300"
+                     x-transition:enter-start="opacity-0 transform -translate-y-2"
+                     x-transition:enter-end="opacity-100 transform translate-y-0"
+                     x-transition:leave="transition ease-in duration-200"
+                     x-transition:leave-start="opacity-100 transform translate-y-0"
+                     x-transition:leave-end="opacity-0 transform -translate-y-2"
+                     class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
+                    <span class="block sm:inline" x-text="validationMessage"></span>
                 </div>
+
+                <!-- Ringkasan Pesanan -->
+                <div class="mb-5 border-b border-gray-200 pb-4"> {{-- mb-5 --}}
+                    <h4 class="text-base font-semibold text-gray-700 mb-2">Ringkasan Pesanan</h4> {{-- text-base dan mb-2 --}}
+                    <ul class="space-y-1 text-gray-600 text-xs"> {{-- text-xs --}}
+                        @if($cartItems->isNotEmpty())
+                            @foreach($cartItems as $item)
+                                <li class="flex justify-between items-center py-1"> {{-- Added items-center and py-1 for alignment --}}
+                                    <div class="flex items-center space-x-2"> {{-- Flex container for image and text --}}
+                                        <img src="{{ $item->product?->foto ? asset('storage/' . $item->product->foto) : 'https://placehold.co/30x30/cccccc/333333?text=No+Image' }}"
+                                             alt="{{ $item->nama_produk ?? ($item->product?->nama ?? 'Produk') }}" {{-- Menggunakan $item->product?->nama --}}
+                                             class="w-8 h-8 object-cover rounded"> {{-- Small image size --}}
+                                        <span>{{ $item->nama_produk ?? ($item->product?->nama ?? 'Produk Tidak Ditemukan') }} ({{ $item->jumlah }}x)</span> {{-- Menggunakan $item->product?->nama --}}
+                                    </div>
+                                    <span>Rp {{ number_format($item->subtotal, 0, ',', '.') }}</span>
+                                </li>
+                            @endforeach
+                            <li class="flex justify-between font-bold text-gray-800 mt-2 pt-2 border-t border-gray-200">
+                                <span>Total:</span>
+                                <span>Rp {{ number_format($total, 0, ',', '.') }}</span>
+                            </li>
+                        @else
+                            <li class="text-red-500">Keranjang kosong. Tidak ada item untuk di-checkout.</li>
+                        @endif
+                    </ul>
+                </div>
+
+                <!-- Detail Pengiriman -->
+                <div class="mb-5"> {{-- mb-5 --}}
+                    <h4 class="text-base font-semibold text-gray-700 mb-2">Detail Pengiriman</h4> {{-- text-base dan mb-2 --}}
+                    <div class="space-y-2"> {{-- space-y-2 --}}
+                        <div>
+                            <label for="nama_penerima" class="block text-xs font-medium text-gray-700">Nama Penerima</label> {{-- text-xs --}}
+                            <input type="text" id="nama_penerima" name="nama_penerima" required
+                                   class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm" {{-- text-sm --}}
+                                   placeholder="Nama Lengkap"
+                                   value="{{ Session::get('cart_nama_pembeli') ?? (Auth::check() ? Auth::user()->name : '') }}"> {{-- PRIORITASKAN SESI --}}
+                        </div>
+                        <div>
+                            <label for="no_hp_penerima" class="block text-xs font-medium text-gray-700">Nomor Telepon</label> {{-- text-xs --}}
+                            <input type="tel" id="no_hp_penerima" name="no_hp_penerima" required
+                                   class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm" {{-- text-sm --}}
+                                   placeholder="Contoh: 081234567890" value="{{ Session::get('cart_no_hp') ?? '' }}">
+                        </div>
+                        <div>
+                            <label for="alamat_lengkap" class="block text-xs font-medium text-gray-700">Alamat Lengkap</label> {{-- text-xs --}}
+                            <textarea id="alamat_lengkap" name="alamat_lengkap" rows="2" required
+                                      class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm" {{-- text-sm --}}
+                                      placeholder="Jalan, Nomor Rumah, RT/RW, Kelurahan, Kecamatan, Kota/Kabupaten, Provinsi, Kode Pos">{{ Session::get('cart_alamat') ?? '' }}</textarea>
+                        </div>
+                    </div>
+                    <p class="text-left text-xs text-red-500">* Mohon periksa kembali detail pengiriman anda *</p>
+                </div>
+
+                <!-- Metode Pembayaran -->
+                <div class="mb-5"> {{-- mb-5 --}}
+                    <h4 class="text-base font-semibold text-gray-700 mb-2">Metode Pembayaran</h4> {{-- text-base dan mb-2 --}}
+                    <div class="space-y-2">
+                        <label class="flex items-center p-2 border border-gray-200 rounded-md cursor-pointer hover:bg-gray-50">
+                            <input type="radio" name="payment_method" value="cod" x-model="selectedPaymentMethod" class="form-radio h-4 w-4 text-blue-600 focus:ring-blue-500">
+                            <span class="ml-2 text-gray-800 text-sm">Cash On Delivery (COD)</span>
+                        </label>
+                        <label class="flex items-center p-2 border border-gray-200 rounded-md cursor-pointer hover:bg-gray-50">
+                            <input type="radio" name="payment_method" value="transfer" x-model="selectedPaymentMethod" class="form-radio h-4 w-4 text-blue-600 focus:ring-blue-500">
+                            <span class="ml-2 text-gray-800 text-sm">Transfer Bank</span>
+                        </label>
+                    </div>
+
+                    <!-- Detail Transfer Bank (Conditional) -->
+                    <div x-show="selectedPaymentMethod === 'transfer'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 transform -translate-y-2" x-transition:enter-end="opacity-100 transform translate-y-0" class="mt-4 p-3 bg-blue-50 rounded-md border border-blue-100 text-xs"> {{-- p-3 dan text-xs --}}
+                        <p class="text-blue-700 mb-2">Silakan transfer ke:</p> {{-- mb-2 --}}
+                        <ul class="list-disc list-inside text-blue-900 mb-3"> {{-- mb-3 --}}
+                            <li>BCA: 234567890 (a.n. PT Jualan Online)</li>
+                            <li>Mandiri: 0987654321 (a.n. PT Jualan Online)</li>
+                        </ul>
+                        <div class="space-y-2"> {{-- space-y-2 --}}
+                            <div>
+                                <label for="nama_pengirim_rekening" class="block text-xs font-medium text-gray-700">Nama Pengirim (Sesuai Rekening)</label> {{-- text-xs --}}
+                                <input type="text" id="nama_pengirim_rekening" name="nama_pengirim_rekening"
+                                       x-bind:required="selectedPaymentMethod === 'transfer'"
+                                       class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm" {{-- text-sm --}}
+                                       placeholder="Nama Anda di rekening">
+                            </div>
+                            <div>
+                                <label for="nomor_rekening_pengirim" class="block text-xs font-medium text-gray-700">Nomor Rekening Pengirim</label> {{-- text-xs --}}
+                                <input type="text" id="nomor_rekening_pengirim" name="nomor_rekening_pengirim"
+                                       x-bind:required="selectedPaymentMethod === 'transfer'"
+                                       class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm" {{-- text-sm --}}
+                                       placeholder="Nomor rekening Anda">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Catatan Tambahan (Opsional) -->
+                <div class="mb-5"> {{-- mb-5 --}}
+                    <label for="catatan_pesanan" class="block text-xs font-medium text-gray-700">Catatan Tambahan (Opsional)</label> {{-- text-xs --}}
+                    <textarea id="catatan_pesanan" name="catatan_pesanan" rows="2"
+                              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm" {{-- text-sm --}}
+                              placeholder="Misalnya: Mohon dikirim setelah jam 5 sore"></textarea>
+                </div>
+
+                <!-- Persetujuan Syarat & Ketentuan -->
+                <div class="mb-6">
+                    <label class="flex items-start">
+                        <input type="checkbox" id="agree_terms" name="agree_terms" required
+                               class="form-checkbox h-4 w-4 text-blue-600 rounded mt-1 focus:ring-blue-500">
+                        <span class="ml-2 text-gray-700 text-xs"> {{-- text-xs --}}
+                            Saya setuju dengan <a href="#" class="text-blue-600 hover:underline font-medium">Syarat & Ketentuan</a> dan <a href="#" class="text-blue-600 hover:underline font-medium">Kebijakan Privasi</a>.
+                        </span>
+                    </label>
+                </div>
+
+                <!-- Tombol Aksi -->
+                <div class="flex justify-end space-x-3">
+                    <button type="button" x-on:click="openCheckoutModal = false" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 px-4 rounded-md transition duration-150 ease-in-out"> {{-- px-4 --}}
+                        Batal
+                    </button>
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md transition duration-150 ease-in-out"> {{-- px-4 --}}
+                        Konfirmasi Pesanan
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
             @else
                 <div class="text-center py-16 bg-gray-50 rounded-2xl border border-gray-200 shadow-sm">
                     <svg class="mx-auto h-28 w-28 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
@@ -336,7 +540,7 @@
                     </ul>
                 </div>
                 <div>
-                    <h4 class="text-lg font-semibold mb-2">Komponen</h4>
+                    <h4 class="text-lg font-semibold mb-2">Komponen & Tools</h4>
                     <ul class="space-y-1 text-sm text-gray-300">
                          <li>Gemini Ai</li>
                         <li>Laravel 10</li>
@@ -504,52 +708,148 @@
         }
 
         // Fungsi untuk menangani balasan bot yang lebih kompleks
-        function getBotResponse(message) {
-            const lowerCaseMessage = message.toLowerCase();
-            let response = { text: "Maaf, saya belum mengerti. Bisakah Anda lebih spesifik atau pilih opsi di bawah? 🤔", replies: [] };
+function getBotResponse(message) {
+    const lowerCaseMessage = message.toLowerCase();
+    let response = { text: "Maaf, saya belum mengerti. Bisakah Anda lebih spesifik atau pilih opsi di bawah ini? 🤔", replies: [] };
 
-            if (lowerCaseMessage.includes("halo") || lowerCaseMessage.includes("hai")) {
-                response.text = "Halo! Senang bisa membantu. Ada yang bisa saya bantu hari ini? ✨";
-                response.replies = ["Lihat Produk", "Status Pesanan", "Bantuan Umum", "Kontak Admin"];
-            } else if (lowerCaseMessage.includes("produk") || lowerCaseMessage.includes("barang")) {
-                response.text = "Tentu! Anda bisa melihat semua produk kami di halaman 'Lihat Produk'. Kami punya banyak pilihan menarik! 🛍️";
-                response.replies = ["Cara Beli", "Produk Terbaru", "Promosi"];
-            } else if (lowerCaseMessage.includes("harga")) {
-                response.text = "Harga setiap produk tertera jelas di halaman produk masing-masing. Harga di keranjang belanja juga akan otomatis terupdate. 💰";
-                response.replies = ["Ada Diskon?", "Metode Pembayaran"];
-            } else if (lowerCaseMessage.includes("servis") || lowerCaseMessage.includes("layanan purna jual") || lowerCaseMessage.includes("garansi")) {
-                response.text = "Untuk pertanyaan layanan purna jual, garansi, atau perbaikan, silakan hubungi tim dukungan kami. Mereka siap membantu! 🛠️";
-                response.replies = ["Nomor Kontak", "Jam Operasional Servis"];
-            } else if (lowerCaseMessage.includes("beli") || lowerCaseMessage.includes("cara order")) {
-                response.text = "Mudah sekali! Anda bisa menambahkan produk ke keranjang dari halaman produk, lalu ikuti langkah-langkah di halaman checkout. 🛒";
-                response.replies = ["Metode Pembayaran", "Biaya Kirim"];
-            } else if (lowerCaseMessage.includes("lokasi") || lowerCaseMessage.includes("alamat")) {
-                response.text = "JuaLaNs adalah toko online, jadi kami tidak punya lokasi fisik. Kami melayani pengiriman ke seluruh Indonesia! Di mana pun Anda berada, kami siap kirim. 📦";
-                response.replies = ["Jangkauan Pengiriman"];
-            } else if (lowerCaseMessage.includes("pembayaran") || lowerCaseMessage.includes("bayar")) {
-                response.text = "Kami menerima berbagai metode pembayaran seperti transfer bank (BCA, Mandiri), e-wallet (OVO, GoPay), dan kartu kredit. Pilih yang paling nyaman untuk Anda! 💳";
-                response.replies = ["Konfirmasi Pembayaran", "Masalah Pembayaran"];
-            } else if (lowerCaseMessage.includes("diskon") || lowerCaseMessage.includes("promo")) {
-                response.text = "Ya, kami sering ada promo menarik! Cek halaman 'Promosi' atau bagian banner di halaman utama kami untuk penawaran terbaru. Jangan sampai ketinggalan! 🎉";
-                response.replies = ["Syarat & Ketentuan Promo"];
-            } else if (lowerCaseMessage.includes("status pesanan") || lowerCaseMessage.includes("kiriman")) {
-                response.text = "Untuk cek status pesanan, mohon masukkan nomor pesanan Anda. Jika belum ada nomor pesanan, Anda bisa lihat riwayat pembelian di akun Anda. 🚚";
-                response.replies = ["Lacak Pesanan", "Pengiriman Lama"];
-            } else if (lowerCaseMessage.includes("kontak") || lowerCaseMessage.includes("admin")) {
-                response.text = "Anda bisa menghubungi admin kami melalui email di support@jualans.com atau via telepon di +6281234567890 selama jam kerja. Kami siap membantu! 🧑‍💻";
-                response.replies = ["Jam Operasional", "Tulis Email"];
-            }
-            // Add more complex responses as needed
-            // Example for specific product query (requires more sophisticated parsing or a real AI)
-            else if (lowerCaseMessage.includes("xiaomi") && lowerCaseMessage.includes("redmi note")) {
-                response.text = "Ah, Xiaomi Redmi Note! Seri ini sangat populer. Model spesifik mana yang Anda cari? Kami punya beberapa varian. 📱";
-                response.replies = ["Redmi Note 12", "Redmi Note 13"];
-            } else if (lowerCaseMessage.includes("redmi note 13")) {
-                response.text = "Xiaomi Redmi Note 13 adalah pilihan tepat! Harganya mulai dari Rp 2.500.000. Fitur utamanya: Kamera 108MP, layar AMOLED 120Hz, dan baterai 5000mAh. Tertarik? ✨";
-                response.replies = ["Lihat Detail Redmi Note 13", "Beli Sekarang Redmi Note 13"];
-            }
-            return response;
-        }
+    // --- Sapaan dan Pembuka ---
+    if (lowerCaseMessage.includes("halo") || lowerCaseMessage.includes("hai") || lowerCaseMessage.includes("selamat") || lowerCaseMessage.includes("pagi") || lowerCaseMessage.includes("siang") || lowerCaseMessage.includes("sore") || lowerCaseMessage.includes("malam")) {
+        response.text = "Halo! 👋 Senang bisa membantu Anda. Ada yang bisa saya bantu hari ini? ✨";
+        response.replies = ["Lihat Produk", "Status Pesanan", "Bantuan Umum", "Kontak Admin"];
+    } else if (lowerCaseMessage.includes("terima kasih") || lowerCaseMessage.includes("makasih")) {
+        response.text = "Sama-sama! 😊 Ada hal lain yang bisa saya bantu?";
+        response.replies = ["Kembali ke Menu Utama", "Tutup Chat"];
+    } else if (lowerCaseMessage.includes("apa kabar")) {
+        response.text = "Saya bot yang baik-baik saja, siap melayani Anda! Bagaimana dengan Anda? 😊";
+        response.replies = ["Lihat Produk", "Bantuan Umum"];
+    }
+
+    // --- Informasi Produk ---
+    else if (lowerCaseMessage.includes("produk") || lowerCaseMessage.includes("barang") || lowerCaseMessage.includes("katalog")) {
+        response.text = "Tentu! Anda bisa melihat semua produk kami di halaman 'Lihat Produk'. Kami punya banyak pilihan menarik dari berbagai kategori! 🛍️";
+        response.replies = ["Cara Beli Produk", "Produk Terbaru", "Kategori Produk", "Promosi"];
+    } else if (lowerCaseMessage.includes("harga")) {
+        response.text = "Harga setiap produk tertera jelas di halaman produk masing-masing. Harga di keranjang belanja juga akan otomatis terupdate. Apakah Anda mencari informasi harga untuk produk tertentu? 💰";
+        response.replies = ["Ada Diskon?", "Metode Pembayaran"];
+    } else if (lowerCaseMessage.includes("spesifikasi") || lowerCaseMessage.includes("detail produk")) {
+        response.text = "Untuk detail dan spesifikasi lengkap produk, silakan kunjungi halaman produk yang bersangkutan. Biasanya kami menyertakan semua informasi teknis di sana. 🔍";
+        response.replies = ["Cari Produk", "Cara Cek Spesifikasi"];
+    } else if (lowerCaseMessage.includes("stok") || lowerCaseMessage.includes("ketersediaan")) {
+        response.text = "Ketersediaan stok produk tertera di halaman produk masing-masing. Jika tertulis 'Stok Habis' atau 'Pre-order', artinya produk tersebut sedang tidak tersedia atau dalam proses restock. 📦";
+        response.replies = ["Notifikasi Stok", "Produk Rekomendasi"];
+    } else if (lowerCaseMessage.includes("ulasan") || lowerCaseMessage.includes("review")) {
+        response.text = "Anda bisa melihat ulasan produk dari pembeli lain di bagian bawah halaman setiap produk. Ulasan membantu Anda membuat keputusan yang lebih baik! ⭐";
+        response.replies = ["Cara Memberi Ulasan", "Ulasan Terbaik"];
+    }
+
+    // --- Proses Pembelian ---
+    else if (lowerCaseMessage.includes("beli") || lowerCaseMessage.includes("cara order") || lowerCaseMessage.includes("pesan")) {
+        response.text = "Mudah sekali! 🛒 Cukup tambahkan produk yang Anda inginkan ke keranjang, lalu klik 'Checkout' dan ikuti langkah-langkah pembayaran hingga selesai. Prosesnya cepat dan aman.";
+        response.replies = ["Metode Pembayaran", "Biaya Kirim", "Registrasi Akun"];
+    } else if (lowerCaseMessage.includes("keranjang") || lowerCaseMessage.includes("masuk keranjang")) {
+        response.text = "Produk yang sudah Anda tambahkan bisa dilihat di ikon keranjang belanja Anda di pojok kanan atas. Dari sana, Anda bisa mengatur jumlah atau melanjutkan ke pembayaran. 🛒";
+        response.replies = ["Checkout", "Hapus Produk dari Keranjang"];
+    } else if (lowerCaseMessage.includes("pembayaran") || lowerCaseMessage.includes("bayar") || lowerCaseMessage.includes("transfer")) {
+        response.text = "Kami menerima berbagai metode pembayaran yang nyaman untuk Anda: Transfer Bank (BCA, Mandiri), E-wallet (OVO, GoPay, Dana), dan Kartu Kredit/Debit (Visa, Mastercard). 💳";
+        response.replies = ["Konfirmasi Pembayaran", "Masalah Pembayaran", "Cicilan"];
+    } else if (lowerCaseMessage.includes("konfirmasi pembayaran")) {
+        response.text = "Setelah melakukan pembayaran, biasanya sistem kami akan otomatis mendeteksinya. Jika dalam 1x24 jam pesanan belum terupdate, Anda bisa konfirmasi manual di halaman 'Status Pesanan' dengan menyertakan bukti transfer. ✅";
+        response.replies = ["Cek Status Pembayaran", "Hubungi Dukungan Pembayaran"];
+    } else if (lowerCaseMessage.includes("cicilan") || lowerCaseMessage.includes("kredit")) {
+        response.text = "Kami menyediakan opsi cicilan melalui mitra penyedia layanan finansial tertentu. Informasi lebih lanjut dan syarat & ketentuan bisa Anda lihat di halaman metode pembayaran. 📑";
+        response.replies = ["Mitra Cicilan", "Simulasi Cicilan"];
+    }
+
+    // --- Pengiriman dan Status Pesanan ---
+    else if (lowerCaseMessage.includes("status pesanan") || lowerCaseMessage.includes("kirim") || lowerCaseMessage.includes("dikirim")) {
+        response.text = "Untuk cek status pesanan Anda, mohon masukkan **nomor pesanan** Anda. Jika Anda sudah login, Anda juga bisa melihat riwayat pembelian di dashboard akun Anda. 🚚";
+        response.replies = ["Lacak Pesanan", "Kapan Dikirim?", "Pengiriman Lama"];
+    } else if (lowerCaseMessage.includes("lacak pesanan") || lowerCaseMessage.includes("tracking")) {
+        response.text = "Silakan masukkan nomor resi atau nomor pesanan Anda untuk melacak posisi paket Anda secara real-time. Tracking bisa dilihat di halaman Status Pesanan. 📍";
+        response.replies = ["Nomor Resi Hilang", "Estimasi Waktu Tiba"];
+    } else if (lowerCaseMessage.includes("biaya kirim") || lowerCaseMessage.includes("ongkir")) {
+        response.text = "Biaya pengiriman dihitung berdasarkan lokasi tujuan dan berat/volume produk. Anda bisa melihat estimasi biaya kirim saat proses checkout sebelum pembayaran. 💲";
+        response.replies = ["Jangkauan Pengiriman", "Kurir yang Digunakan"];
+    } else if (lowerCaseMessage.includes("kurir") || lowerCaseMessage.includes("ekspedisi")) {
+        response.text = "Kami bekerja sama dengan berbagai jasa pengiriman terpercaya seperti JNE, J&T, SiCepat, dan Pos Indonesia untuk memastikan pesanan Anda sampai dengan aman dan cepat. 🚚💨";
+        response.replies = ["Ganti Kurir", "Pengiriman Instan"];
+    } else if (lowerCaseMessage.includes("pengiriman lama") || lowerCaseMessage.includes("belum sampai")) {
+        response.text = "Mohon maaf atas ketidaknyamanan ini. 🙏 Terkadang ada kendala di luar dugaan. Silakan cek status pesanan Anda dengan nomor resi. Jika masih terkendala, hubungi customer service kami. ";
+        response.replies = ["Hubungi CS Pengiriman", "Ajukan Komplain"];
+    } else if (lowerCaseMessage.includes("jangkauan pengiriman") || lowerCaseMessage.includes("kirim ke mana")) {
+        response.text = "Kami melayani pengiriman ke seluruh wilayah Indonesia! Dari Sabang sampai Merauke, kami siap kirim pesanan Anda. 🇮🇩";
+        response.replies = ["Estimasi Waktu Pengiriman", "Pengiriman Internasional"];
+    }
+
+    // --- Pengembalian & Penukaran ---
+    else if (lowerCaseMessage.includes("retur") || lowerCaseMessage.includes("kembali barang") || lowerCaseMessage.includes("pengembalian")) {
+        response.text = "Untuk proses pengembalian barang, pastikan produk masih dalam kondisi baik dan sesuai Syarat & Ketentuan retur kami. Anda bisa mengajukan permohonan retur di halaman Riwayat Pesanan Anda. ↩️";
+        response.replies = ["Syarat Retur", "Status Retur"];
+    } else if (lowerCaseMessage.includes("tukar barang") || lowerCaseMessage.includes("penukaran")) {
+        response.text = "Penukaran barang bisa dilakukan jika ada kesalahan pengiriman dari pihak kami atau cacat produk. Silakan ajukan permohonan penukaran melalui halaman Riwayat Pesanan Anda. 🔄";
+        response.replies = ["Syarat Penukaran", "Produk Tidak Sesuai"];
+    } else if (lowerCaseMessage.includes("refund") || lowerCaseMessage.includes("dana kembali")) {
+        response.text = "Proses refund akan dilakukan setelah barang retur kami terima dan diverifikasi. Dana akan dikembalikan sesuai metode pembayaran awal atau ke rekening Anda. Waktu proses bisa bervariasi. 💸";
+        response.replies = ["Berapa Lama Refund?", "Metode Refund"];
+    }
+
+    // --- Akun & Keamanan ---
+    else if (lowerCaseMessage.includes("akun") || lowerCaseMessage.includes("registrasi") || lowerCaseMessage.includes("daftar")) {
+        response.text = "Membuat akun sangat mudah! Cukup klik 'Daftar' di pojok kanan atas, lalu isi data diri Anda. Dengan akun, Anda bisa melacak pesanan dan mendapatkan promo eksklusif. 👤";
+        response.replies = ["Lupa Password", "Manfaat Akun"];
+    } else if (lowerCaseMessage.includes("lupa password") || lowerCaseMessage.includes("reset password")) {
+        response.text = "Jangan khawatir! Klik 'Lupa Password' di halaman login, masukkan email Anda, dan kami akan kirim link untuk reset password Anda. 🔑";
+        response.replies = ["Ganti Email Akun", "Masalah Login"];
+    } else if (lowerCaseMessage.includes("keamanan akun") || lowerCaseMessage.includes("data pribadi")) {
+        response.text = "Keamanan data Anda adalah prioritas kami. JuaLaNs menggunakan enkripsi dan sistem keamanan terkini untuk melindungi informasi pribadi dan transaksi Anda.🔒";
+        response.replies = ["Kebijakan Privasi", "Verifikasi 2 Langkah"];
+    }
+
+    // --- Promosi & Diskon ---
+    else if (lowerCaseMessage.includes("diskon") || lowerCaseMessage.includes("promo") || lowerCaseMessage.includes("voucher")) {
+        response.text = "Ya, kami sering ada promo menarik! Cek halaman 'Promosi' atau bagian banner di halaman utama kami untuk penawaran terbaru. Jangan sampai ketinggalan kesempatan! 🎉";
+        response.replies = ["Syarat & Ketentuan Promo", "Cara Pakai Voucher"];
+    } else if (lowerCaseMessage.includes("kode promo") || lowerCaseMessage.includes("masukkan voucher")) {
+        response.text = "Kode promo atau voucher bisa dimasukkan di halaman keranjang belanja atau halaman checkout sebelum Anda melakukan pembayaran. Pastikan kode sudah benar ya! 🎁";
+        response.replies = ["Voucher Tidak Berlaku", "Promo Hari Ini"];
+    }
+
+    // --- Bantuan Umum & Kontak ---
+    else if (lowerCaseMessage.includes("bantuan umum") || lowerCaseMessage.includes("tanya")) {
+        response.text = "Silakan sampaikan pertanyaan Anda atau pilih dari topik bantuan umum yang sering ditanyakan. Kami siap membantu! 🙋‍♀️";
+        response.replies = ["FAQ", "Hubungi Customer Service", "Tentang JuaLaNs"];
+    } else if (lowerCaseMessage.includes("kontak") || lowerCaseMessage.includes("admin") || lowerCaseMessage.includes("customer service") || lowerCaseMessage.includes("cs")) {
+        response.text = "Anda bisa menghubungi tim dukungan kami melalui: \n\n📧 Email: **support@jualans.com** \n📞 Telepon: **+6281234567890** (Jam Kerja: Senin-Jumat, 09.00-17.00 WITA) \n\nKami siap membantu Anda dengan senang hati! 🧑‍💻";
+        response.replies = ["Jam Operasional", "Kirim Pesan Sekarang"];
+    } else if (lowerCaseMessage.includes("jam operasional")) {
+        response.text = "Tim Customer Service kami beroperasi dari hari **Senin hingga Jumat, pukul 09.00 - 17.00 WITA**. Kami akan berusaha membalas secepat mungkin di luar jam tersebut. ⏰";
+        response.replies = ["Kontak Cepat", "Tulis Email"];
+    } else if (lowerCaseMessage.includes("tentang jualans") || lowerCaseMessage.includes("siapa jualans")) {
+        response.text = "JuaLaNs adalah platform e-commerce yang berdedikasi menyediakan berbagai produk berkualitas dengan harga kompetitif dan pengalaman belanja yang nyaman serta aman bagi Anda. Kami berkomitmen untuk kepuasan pelanggan! 🌟";
+        response.replies = ["Visi & Misi", "Kebijakan Privasi"];
+    } else if (lowerCaseMessage.includes("kebijakan privasi") || lowerCaseMessage.includes("privasi data")) {
+        response.text = "Kebijakan privasi kami menjelaskan bagaimana kami mengumpulkan, menggunakan, dan melindungi data pribadi Anda. Anda bisa membacanya lengkap di halaman Kebijakan Privasi kami. 📄";
+        response.replies = ["Keamanan Akun", "Syarat & Ketentuan"];
+    } else if (lowerCaseMessage.includes("syarat dan ketentuan") || lowerCaseMessage.includes("ketentuan layanan")) {
+        response.text = "Syarat dan Ketentuan layanan kami mengatur penggunaan platform JuaLaNs. Pastikan Anda membacanya untuk memahami hak dan kewajiban Anda sebagai pengguna. 📜";
+        response.replies = ["Kebijakan Pengembalian", "Kebijakan Pengiriman"];
+    }
+
+    // --- Contoh Pertanyaan Spesifik Produk (Furniture) ---
+    else if (lowerCaseMessage.includes("lemari") || lowerCaseMessage.includes("meja") || lowerCaseMessage.includes("kursi") || lowerCaseMessage.includes("furniture")) {
+        response.text = "Anda mencari produk **furniture**? Kami punya berbagai pilihan lemari, meja, kursi, dan set ruang tamu. Furniture jenis apa yang menarik perhatian Anda? 🛋️";
+        response.replies = ["Meja Makan", "Sofa Minimalis", "Lemari Pakaian", "Katalog Furniture"];
+    } else if (lowerCaseMessage.includes("sofa minimalis")) {
+        response.text = "**Sofa minimalis** adalah pilihan tepat untuk ruang keluarga Anda! Harganya mulai dari Rp 3.000.000. Fitur utamanya: Desain modern, bahan berkualitas, dan nyaman. Tertarik? ✨";
+        response.replies = ["Lihat Detail Sofa Minimalis", "Beli Sekarang Sofa Minimalis", "Pilihan Warna Sofa"];
+    } else if (lowerCaseMessage.includes("desain interior") || lowerCaseMessage.includes("dekorasi rumah")) {
+        response.text = "Kami bisa bantu Anda menemukan **furniture** yang cocok dengan gaya desain interior atau dekorasi rumah Anda. Ceritakan lebih banyak tentang preferensi Anda! 🏡";
+        response.replies = ["Furniture Modern", "Furniture Klasik", "Tips Dekorasi"];
+    }
+
+    // --- Default / Fallback Response ---
+    return response;
+}
 
         // Fungsi untuk mengirim pesan (saat tombol Kirim atau Enter ditekan)
         function sendMessage() {

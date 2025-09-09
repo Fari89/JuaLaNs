@@ -60,7 +60,7 @@
                 </ul>
             </div>
             <div>
-                <h4 class="text-lg font-semibold mb-2">Komponen</h4>
+                <h4 class="text-lg font-semibold mb-2">Komponen & Tools</h4>
                 <ul class="space-y-1 text-sm text-gray-300">
                      <li>Gemini Ai</li>
                     <li>Laravel 10</li>

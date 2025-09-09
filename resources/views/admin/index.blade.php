@@ -90,9 +90,9 @@
                                 <a href="{{ route('dashboard') }}"
                                     class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem"
                                     tabindex="-1" id="user-menu-item-1">Dashboard</a>
-                                <a href="{{ route('admin.index') }}"
+                                {{-- <a href="{{ route('admin.index') }}"
                                     class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem"
-                                    tabindex="-1" id="user-menu-item-2">Masuk Admin</a>
+                                    tabindex="-1" id="user-menu-item-2">Masuk Admin</a> --}}
                                 <form method="POST" action="{{ route('logout') }}">
                                     @csrf
                                     <button type="submit"
@@ -277,7 +277,7 @@
                 </ul>
             </div>
             <div>
-                <h4 class="text-lg font-semibold mb-2">Komponen</h4>
+                <h4 class="text-lg font-semibold mb-2">Komponen & Tools</h4>
                 <ul class="space-y-1 text-sm text-gray-300">
                      <li>Gemini Ai</li>
                     <li>Laravel 10</li>

@@ -14,7 +14,7 @@ class DashboardController extends Controller
         $product = Product::when($search, function ($query, $search) {
             return $query->where('nama', 'like', '%' . $search . '%');
         }, function ($query) {
-            return $query->take(3); // jika tidak ada search, ambil 4 produk saja
+            return $query->take(4); // jika tidak ada search, ambil 4 produk saja
         })->get();
 
         return view('dashboard', compact('product'));
